@@ -1,13 +1,10 @@
 #!/bin/bash
 set -xe
 
-BUCKET="codedeploystack-webappdeploymentbucket-xmobce67pspx"
-DEST="/usr/local/tomcat9/webapps"
-WAR="SpringBootHelloWorldExampleApplication.war"
 
+aws s3 cp s3://codedeploystack-webappdeploymentbucket-xmobce67pspx/SpringBootHelloWorldExampleApplication.war \
+  /usr/local/tomcat9/webapps/SpringBootHelloWorldExampleApplication.war
 
-aws s3 cp s3://$BUCKET/$WAR $DEST/$WAR
+chown -R tomcat:tomcat /usr/local/tomcat9/webapps
 
-
-chown -R tomcat:tomcat $DEST
 
