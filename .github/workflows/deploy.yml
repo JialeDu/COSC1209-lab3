@@ -8,7 +8,6 @@ env:
   AWS_REGION: us-east-1
   S3BUCKET: codedeploystack-webappdeploymentbucket-xmobce67pspx
 
-
 jobs:
   build:
     name: Build and Package
@@ -17,10 +16,11 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v2
-        name: Checkout Repository
+      - name: Checkout Repository
+        uses: actions/checkout@v2
 
-      - uses: aws-actions/configure-aws-credentials@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
           role-session-name: GitHub-Action-Role
@@ -31,18 +31,20 @@ jobs:
         with:
           java-version: 1.8
 
-      - name: chmod
-        run: chmod -R +x ./.github
+      - name: Make scripts executable
+        run: chmod -R +x .github aws/scripts
 
       - name: Build and Package Maven
         id: package
         working-directory: ${{ env.applicationfolder }}
         run: $GITHUB_WORKSPACE/.github/scripts/build.sh
 
-      - name: Upload Artifact to s3
-        working-directory: ${{ env.applicationfolder }}/target
-        run: aws s3 cp *.war s3://${{ env.S3BUCKET }}/
-        
+     
+      - name: Upload WAR to S3
+        run: |
+          cp ${{ env.applicationfolder }}/target/*.war SpringBootHelloWorldExampleApplication.war
+          aws s3 cp SpringBootHelloWorldExampleApplication.war s3://${{ env.S3BUCKET }}/
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -51,13 +53,19 @@ jobs:
       id-token: write
       contents: read
     steps:
-    - uses: actions/checkout@v2
-    - uses: aws-actions/configure-aws-credentials@v1
-      with:
-        role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
-        role-session-name: GitHub-Action-Role
-        aws-region: ${{ env.AWS_REGION }}
-    - run: |
-        echo "Deploying branch ${{ env.GITHUB_REF }} to ${{ github.event.inputs.environment }}"
-        commit_hash=`git rev-parse HEAD`
-        aws deploy create-deployment --application-name CodeDeployAppNameWithASG --deployment-group-name CodeDeployGroupName --github-location repository=$GITHUB_REPOSITORY,commitId=$commit_hash --ignore-application-stop-failures
+      - uses: actions/checkout@v2
+
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
+          role-session-name: GitHub-Action-Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create CodeDeploy deployment
+        run: |
+          commit_hash=$(git rev-parse HEAD)
+          aws deploy create-deployment \
+            --application-name CodeDeployAppNameWithASG \
+            --deployment-group-name CodeDeployGroupName \
+            --github-location repository=$GITHUB_REPOSITORY,commitId=$commit_hash \
+            --ignore-application-stop-failures
