@@ -42,8 +42,10 @@ jobs:
      
       - name: Upload WAR to S3
         run: |
-          cp ${{ env.applicationfolder }}/target/*.war SpringBootHelloWorldExampleApplication.war
+          WAR=$(ls ${{ env.applicationfolder }}/target/*.war | head -n1)
+          cp "$WAR" SpringBootHelloWorldExampleApplication.war
           aws s3 cp SpringBootHelloWorldExampleApplication.war s3://${{ env.S3BUCKET }}/
+
 
   deploy:
     needs: build
