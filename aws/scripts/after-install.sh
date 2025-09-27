@@ -1,5 +1,6 @@
 #!/bin/bash
-set -xe
+set -e
+systemctl is-active --quiet tomcat
 
 
 rm -f /usr/local/tomcat9/webapps/SpringBootHelloWorldExampleApplication.war
